@@ -18,12 +18,31 @@ namespace InitChanger
         {
             int nSiteNo = 326;
             bool bIsSuccess = false;
-            while (!bIsSuccess)
+            DbAgent dbAgent = new DbAgent("Data Source=hitomi_downloader_GUI.ini;Version=3;UseUTF16Encoding=True;");
+            Regex regex = new Regex("https\\:\\/\\/manatoki(?<no>[0-9]*)\\.net");
+
+            using (DataTable tbNames = dbAgent.GetDataTable("SELECT * FROM Data;"))
             {
-                nSiteNo++;
+                foreach (DataRow row in tbNames.Rows)
+                {
+                    string sJsonData = row["value"].ToString();
+                    Match match = regex.Match(sJsonData);
+                    if(match.Success)
+                    {
+                        nSiteNo = Convert.ToInt32(match.Groups["no"].Value);
+                        break;
+                    }                    
+                }
+            }
+
+
+          
+            while (!bIsSuccess)
+            {                
                 try
                 {
-                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create($"https://manatoki{nSiteNo}.net/");
+                    string sUrl = $"https://manatoki{nSiteNo}.net/";
+                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create(sUrl);
                     request.Method = "GET";
                     request.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3";
                     request.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8";
@@ -33,24 +52,27 @@ namespace InitChanger
                     Console.WriteLine($"Connecting to {nSiteNo} ...");
                     using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
                     {
-                        if(response.StatusCode == HttpStatusCode.OK)
+                        if(response.StatusCode == HttpStatusCode.OK
+                            && sUrl.Contains(response.ResponseUri.Host))
                         {
                             bIsSuccess = true;
                             Console.WriteLine(nSiteNo);
                         }
+                        else
+                            nSiteNo++;
                     }
                 }
                 catch(Exception ex)
                 {
+                    nSiteNo++;
                     Console.WriteLine(ex.Message);
-                }                
+                }
             }
 
             Console.WriteLine($"Found Site : https://manatoki{nSiteNo}.net/");
 
 
-            DbAgent dbAgent = new DbAgent("Data Source=hitomi_downloader_GUI.ini;Version=3;UseUTF16Encoding=True;");
-            Regex regex = new Regex("https\\:\\/\\/manatoki[0-9]*\\.net");
+            
 
             using (DataTable tbData = dbAgent.GetDataTable("SELECT * FROM Data;"))
             {
@@ -58,8 +80,7 @@ namespace InitChanger
                 {
                     string sJsonData = row["value"].ToString();
                     string sReplaceJsonData = regex.Replace(sJsonData, $"https://manatoki{nSiteNo}.net");
-                    Console.WriteLine(sJsonData);
-                    Console.WriteLine(sReplaceJsonData);
+                    Console.WriteLine(row["option"]);
                     QuerySet set = new QuerySet("UPDATE Data SET value = @value WHERE option = @option;");
                     set.AddParamters("@value", sReplaceJsonData);
                     set.AddParamters("@option", row["option"]);
@@ -74,8 +95,7 @@ namespace InitChanger
                 {
                     string sJsonData = row["value"].ToString();
                     string sReplaceJsonData = regex.Replace(sJsonData, $"https://manatoki{nSiteNo}.net");
-                    Console.WriteLine(sJsonData);
-                    Console.WriteLine(sReplaceJsonData);
+                    Console.WriteLine(row["option"]);                    
                     QuerySet set = new QuerySet("UPDATE Names SET value = @value WHERE option = @option;");
                     set.AddParamters("@value", sReplaceJsonData);
                     set.AddParamters("@option", row["option"]);
