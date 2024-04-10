@@ -109,7 +109,6 @@ namespace CompressFolders
                         Process process = Process.Start(processStartInfo);
                         process.WaitForExit();
 
-
                         string sTargetFullFilename = Path.Combine(targetDir.FullName, sCompressFilename);
                         FileInfo targetFileInfo = new FileInfo(sTargetFullFilename);
                         if (File.Exists(sTargetFullFilename))
@@ -118,11 +117,11 @@ namespace CompressFolders
                             if (sourceFileInfo.Length != targetFileInfo.Length)
                             {
                                 File.Delete(sTargetFullFilename);
+                                File.Copy(sFullFilename, sTargetFullFilename, true);
+                                File.Delete(sFullFilename);
+                                Console.Write($" ->  Overwrited ->");
                             }
-                        }
-                            
-                        File.Move(sFullFilename, sTargetFullFilename);
-
+                        }                        
                         Console.WriteLine($" ->  Process Complete");
                     }
                     catch(Exception ex)
